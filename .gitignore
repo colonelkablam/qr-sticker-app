@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# macOS/Linux system files
+.DS_Store
+Thumbs.db
+
+# VSCode or IDE files
+.vscode/
+.idea/
+
+# QR output (optional)
+qr_output.png
