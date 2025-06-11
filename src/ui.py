@@ -6,7 +6,7 @@ from .utils import extract_slug, get_default_save_dir
 
 def launch_gui():
     def on_create():
-        url = url_entry.get()
+        url = url_entry.get().strip() # remove any leading/trailing whitespace
         try:
             width_mm = float(width_entry.get())
             height_mm = float(height_entry.get())
