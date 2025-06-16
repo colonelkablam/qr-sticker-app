@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import filedialog
-from .generator import create_qr_image
+from .generator import create_qr_image, create_tag_qr_image
 from .utils import extract_slug, get_default_save_dir
 
 def launch_gui():
@@ -37,7 +37,11 @@ def launch_gui():
         if not file_path:
             return  # User cancelled
 
-        create_qr_image(url, width_mm, height_mm, dpi, version, filename=file_path)
+        if use_template_var.get():
+            create_tag_qr_image(url, version=version, filename=file_path)
+        else:
+            create_qr_image(url, width_mm, height_mm, dpi, version, filename=file_path)
+            
         messagebox.showinfo("Success", f"QR code saved to:\n{file_path}")
 
     def on_cancel():
@@ -70,6 +74,15 @@ def launch_gui():
     version_entry = tk.Entry(root, width=10)
     version_entry.insert(0, "4")
     version_entry.pack()
+
+    use_template_var = tk.BooleanVar()
+    use_template_checkbox = tk.Checkbutton(
+        root,
+        text="Use tag template background",
+        variable=use_template_var
+    )
+    use_template_checkbox.pack()
+
 
     button_frame = tk.Frame(root)
     button_frame.pack(pady=10)
