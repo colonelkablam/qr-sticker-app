@@ -3,7 +3,7 @@ import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 from pathlib import Path
 
-def create_luggage_tag_qr_image(url: str, version: int = 4, filename="tag_output.png", template_path=None, qr_zone=(0, 0, 827, 472)):
+def create_luggage_tag_qr_image(url: str, version: int = 4, error_level: char = 'M', filename="tag_output.png", template_path=None, qr_zone=(0, 0, 827, 472)):
     """
     Generates a QR code and URL image composited onto a tag template background.
     The tag template is assumed to be 2598x472px, and the QR zone is 827x472px at (0,0).

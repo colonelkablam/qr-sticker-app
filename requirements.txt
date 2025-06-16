@@ -1,3 +1,7 @@
 colorama==0.4.6
 pillow==11.2.1
 qrcode==8.2
+
+# GUI dependencies
+# Note: tkinter must be installed via OS package manager (e.g., sudo apt install python3.12-tk)
+

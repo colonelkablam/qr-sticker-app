@@ -15,6 +15,11 @@ python -m venv .venv
 Install the required packages:
     pip install -r requirements.txt
 
+## System Dependencies
+
+Before using this app, make sure `tkinter` is installed:
+    sudo apt install python3.12-tk
+
 Run the app:
     python -m src.main
 
