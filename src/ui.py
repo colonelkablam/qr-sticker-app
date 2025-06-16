@@ -209,10 +209,7 @@ def launch_gui():
 
         # Enable/disable tag frame
         for widget in tag_frame.winfo_children():
-            try:
-                widget.configure(state="disabled")
-            except tk.TclError:
-                pass  # Skip widgets that don't support 'state'
+            widget.configure(state="normal" if use_tag else "disabled")
 
         # Enable/disable rectangular frame
         for widget in rect_frame.winfo_children():
