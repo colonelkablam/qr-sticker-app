@@ -3,21 +3,24 @@ import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 from pathlib import Path
 
-def create_tag_qr_image(url: str, version: int = 4, filename="tag_output.png"):
+def create_luggage_tag_qr_image(url: str, version: int = 4, filename="tag_output.png", template_path=None, qr_zone=(0, 0, 827, 472)):
     """
     Generates a QR code and URL image composited onto a tag template background.
     The tag template is assumed to be 2598x472px, and the QR zone is 827x472px at (0,0).
     """
     # Load the background template
-    BASE_DIR = Path(__file__).resolve().parent.parent  # root of project
-    TEMPLATE_PATH = BASE_DIR / "assets" / "tag_template.png"
+    if template_path is None:
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        template_path = BASE_DIR / "assets" / "tag_template.png"
+    
+    TEMPLATE_PATH = Path(template_path)
     
     if not TEMPLATE_PATH.exists():
         raise FileNotFoundError(f"Template image not found at {TEMPLATE_PATH}")
     
     background = Image.open(TEMPLATE_PATH).convert("RGBA")
-    qr_zone_width = 827
-    qr_zone_height = 472
+    # Unpack the QR zone
+    zone_x, zone_y, qr_zone_width, qr_zone_height = qr_zone
 
     # Make the QR code image with text below (on a transparent canvas)
     qr_size = int(qr_zone_height * 0.75)  # ~75% of vertical space
@@ -36,38 +39,46 @@ def create_tag_qr_image(url: str, version: int = 4, filename="tag_output.png"):
     qr_zone_img = Image.new("RGBA", (qr_zone_width, qr_zone_height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(qr_zone_img)
 
-    # Paste QR code
+    # Paste QR code in middle
     qr_x = (qr_zone_width - qr_size) // 2
-    qr_zone_img.paste(qr_rendered, (qr_x, 10))
+    qr_y = (qr_zone_height - qr_size) // 2
+    qr_zone_img.paste(qr_rendered, (qr_x, qr_y))
 
     # Prepare URL text
     padding = int(qr_zone_width * 0.05)
     max_text_width = qr_zone_width - 2 * padding
     text = url if len(url) <= 80 else url[:77] + "..."
-    font_size = 25
-    while font_size > 6:
+    font_size = 28
+
+    while font_size > 5:
         try:
             font = ImageFont.truetype("arial.ttf", font_size)
         except:
             font = ImageFont.load_default()
             break
         bbox = draw.textbbox((0, 0), text, font=font)
+        # get text width in pixels of this iteration
         text_width = bbox[2] - bbox[0]
         if text_width <= max_text_width:
             break
         font_size -= 1
 
     text_x = (qr_zone_width - text_width) // 2
-    text_y = qr_size + 20
+
+    # calculate text height
+    text_height = bbox[3] - bbox[1]
+    remaining_space = qr_zone_height - qr_size
+    text_y = qr_size + (remaining_space//2)
+
     draw.text((text_x, text_y), text, fill="black", font=font)
 
-    # Paste QR zone onto template at (0,0)
-    background.paste(qr_zone_img, (0, 0), qr_zone_img)
+    # Paste QR zone onto background at specified position
+    background.paste(qr_zone_img, (zone_x, zone_y), qr_zone_img)
 
     background.save(filename)
 
 
-def create_qr_image(url: str, width_mm: float, height_mm: float, dpi: int = 300, version: int = 4, filename="qr_output.png"):
+def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: int = 300, version: int = 4, filename="qr_output.png"):
     """
     Generates an rectangular image of QR code with URL text underneath of a given size at a DPI of 300
     """
