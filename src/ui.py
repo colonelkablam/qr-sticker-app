@@ -129,9 +129,13 @@ def launch_gui():
     def toggle_template_fields(*_):
         # Enable/disable custom template entry + button
         use_default = use_template_var.get()
-        state = "disabled" if use_default else "normal"
-        template_path_entry.config(state=state)
-        template_browse_btn.config(state=state)
+        if use_default:
+            new_state = "disabled"
+        else:
+            new_state = "normal"
+        template_path_entry.config(state=new_state)
+        template_browse_btn.config(state=new_state)
+        template_path_label.config(state=new_state)
 
     def toggle_mode_fields(*_):
         # Show only relevant settings based on QR type
@@ -142,7 +146,6 @@ def launch_gui():
         for widget in rect_frame.winfo_children():
             try: widget.config(state="disabled" if use_tag else "normal")
             except tk.TclError: pass
-        toggle_template_fields()
 
     def show_error_info():
         messagebox.showinfo(
@@ -154,7 +157,7 @@ def launch_gui():
             "Higher levels are more robust but store less data."
         )
 
-    def update_qr_stats(*args):
+    def update_qr_stats(*_):
         # Update stats shown based on version/error level
         try:
             version = int(version_entry.get())
@@ -167,7 +170,19 @@ def launch_gui():
                 qr_size_label.config(text=f"QR: {module_count}×{module_count} squares, Max chars: ~{max_chars}")
         except:
             qr_size_label.config(text="QR: ?×? squares, Max chars: ?")
+    
+    def select_csv_file():
+        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if path:
+            csv_path.set(path)
 
+    def toggle_url_mode(*_):
+        if use_csv_var.get():
+            url_entry.config(state="disabled")
+            csv_browse_btn.config(state="normal")
+        else:
+            url_entry.config(state="normal")
+            csv_browse_btn.config(state="disabled")
     # ======= UI Layout =======
 
     root = tk.Tk()
@@ -193,23 +208,6 @@ def launch_gui():
 
     csv_browse_btn = tk.Button(url_frame, text="Browse CSV", state="disabled", command=lambda: select_csv_file())
     csv_browse_btn.grid(row=2, column=2, sticky="e")
-
-    def select_csv_file():
-        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
-        if path:
-            csv_path.set(path)
-
-    def toggle_url_mode(*_):
-        if use_csv_var.get():
-            url_entry.config(state="disabled")
-            csv_browse_btn.config(state="normal")
-        else:
-            url_entry.config(state="normal")
-            csv_browse_btn.config(state="disabled")
-
-    use_csv_var.trace_add("write", toggle_url_mode)
-    toggle_url_mode()  # run once at startup
-
 
     # --- QR encoding settings (version + error level) ---
     version_frame = tk.LabelFrame(root, text="QR Encoding Settings")
@@ -312,7 +310,8 @@ def launch_gui():
 
     custom_template_path = tk.StringVar()
     custom_file_row = tk.Frame(tag_frame)
-    tk.Label(custom_file_row, text="Custom PNG Path:").pack(side="left")
+    template_path_label = tk.Label(custom_file_row, text="Custom PNG Path:", state="disabled")
+    template_path_label.pack(side="left")
     template_path_entry = tk.Entry(custom_file_row, textvariable=custom_template_path, width=40, state="disabled")
     template_path_entry.pack(side="left", padx=5)
     template_browse_btn = tk.Button(custom_file_row, text="Browse", command=browse_for_template, state="disabled")
@@ -328,6 +327,11 @@ def launch_gui():
     # --- Reactive logic bindings ---
     use_template_var.trace_add("write", toggle_template_fields)
     qr_type_var.trace_add("write", toggle_mode_fields)
-    toggle_mode_fields()  # Initial state
+    use_csv_var.trace_add("write", toggle_url_mode)
+    
+    # --- Initial states ---
+    toggle_url_mode() 
+    toggle_mode_fields() 
+    toggle_template_fields()
 
     root.mainloop()
