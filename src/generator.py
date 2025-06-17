@@ -1,9 +1,17 @@
 from PIL import Image, ImageDraw, ImageFont
 import qrcode
-from qrcode.constants import ERROR_CORRECT_M
+from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
 from pathlib import Path
 
-def create_luggage_tag_qr_image(url: str, version: int = 4, error_level: char = 'M', filename="tag_output.png", template_path=None, qr_zone=(0, 0, 827, 472)):
+# Map string to constant
+ERROR_CORRECTION_MAP = {
+    "L": ERROR_CORRECT_L,
+    "M": ERROR_CORRECT_M,
+    "Q": ERROR_CORRECT_Q,
+    "H": ERROR_CORRECT_H,
+}
+
+def create_luggage_tag_qr_image(url: str, version: int = 4, error_level: str = 'M', filename="tag_output.png", template_path=None, qr_zone=(0, 0, 827, 472)):
     """
     Generates a QR code and URL image composited onto a tag template background.
     The tag template is assumed to be 2598x472px, and the QR zone is 827x472px at (0,0).
@@ -26,12 +34,23 @@ def create_luggage_tag_qr_image(url: str, version: int = 4, error_level: char = 
     qr_size = int(qr_zone_height * 0.75)  # ~75% of vertical space
     qr_img = qrcode.QRCode(
         version=version,
-        error_correction=ERROR_CORRECT_M,
+        error_correction=ERROR_CORRECTION_MAP.get(error_level.upper(), ERROR_CORRECT_M),
         box_size=10,
         border=1
     )
     qr_img.add_data(url)
     qr_img.make(fit=True)
+
+    # warn if version number different to user selection
+    actual_version = qr_img.version
+    if actual_version != version:
+        from tkinter import messagebox
+        messagebox.showinfo(
+            "Version Adjusted",
+            f"The selected QR version ({version}) was too small to fit {len(url)} chars.\n"
+            f"It has been increased to version {actual_version} to fit your data."
+        )
+
     qr_rendered = qr_img.make_image(fill_color="black", back_color="white").convert("RGBA")
     qr_rendered = qr_rendered.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
 
@@ -78,7 +97,7 @@ def create_luggage_tag_qr_image(url: str, version: int = 4, error_level: char = 
     background.save(filename)
 
 
-def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: int = 300, version: int = 4, filename="qr_output.png"):
+def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: int = 300, version: int = 4, error_level: str = 'M', filename="qr_output.png"):
     """
     Generates an rectangular image of QR code with URL text underneath of a given size at a DPI of 300
     """
@@ -91,7 +110,7 @@ def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: 
 
     qr = qrcode.QRCode(
         version=version,
-        error_correction=ERROR_CORRECT_M,
+        error_correction=ERROR_CORRECTION_MAP.get(error_level.upper(), ERROR_CORRECT_M),
         box_size=10,
         border=1
     )
