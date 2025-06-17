@@ -138,14 +138,23 @@ def launch_gui():
         template_path_label.config(state=new_state)
 
     def toggle_mode_fields(*_):
-        # Show only relevant settings based on QR type
-        use_tag = qr_type_var.get() == "Luggage Tag QR"
-        for widget in tag_frame.winfo_children():
-            try: widget.config(state="normal" if use_tag else "disabled")
-            except tk.TclError: pass
-        for widget in rect_frame.winfo_children():
-            try: widget.config(state="disabled" if use_tag else "normal")
-            except tk.TclError: pass
+        selected_mode = qr_type_var.get()
+
+        # Map each mode to the frame that should be enabled
+        mode_to_frame = {
+            "Luggage Tag QR": tag_frame,
+            "Rectangular QR": rect_frame,
+            # Add more modes and frames here as needed
+        }
+
+        # Loop through all known frames
+        for mode, frame in mode_to_frame.items():
+            enable = (mode == selected_mode)
+            for widget in frame.winfo_children():
+                try:
+                    widget.config(state="normal" if enable else "disabled")
+                except tk.TclError:
+                    pass  # Skip widgets that can't be disabled
 
     def show_error_info():
         messagebox.showinfo(
