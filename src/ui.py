@@ -10,6 +10,7 @@ def launch_gui():
     # Triggered when "Create" button is pressed
     def on_create():
 
+        # if using csv file need different logic
         if use_csv_var.get():
             if not csv_path.get().strip():
                 messagebox.showerror("CSV Missing", "Please select a CSV file.")
@@ -55,6 +56,8 @@ def launch_gui():
             except Exception as e:
                 messagebox.showerror("Batch Generation Error", str(e))
                 return
+        
+        # creating only single URL from URL entry
         else:
             url = url_entry.get().strip()
             slug = extract_slug(url) # this is for a clear filename
