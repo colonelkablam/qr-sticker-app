@@ -154,16 +154,20 @@ def launch_gui():
                 try:
                     widget.config(state="normal" if enable else "disabled")
                 except tk.TclError:
-                    pass  # Skip widgets that can't be disabled
+                            pass  # Skip widgets that can't be disabled
 
     def show_error_info():
         messagebox.showinfo(
-            "QR Error Correction Levels",
-            "L (Low): ~7% error recovery\n"
+            "QR Code Details",
+            "QR Version:\n"
+            "QR codes come in versions from 1 to 40, increasing in size and capacity.\n"
+            "A higher version will be chosen automatically if your URL or data is long.\n\n"
+            "🛠 Error Correction Levels:\n"
+            "L (Low): ~7% recovery\n"
             "M (Medium): ~15% (default)\n"
             "Q (Quartile): ~25%\n"
-            "H (High): ~30%\n\n"
-            "Higher levels are more robust but store less data."
+            "H (High): ~30%\n"
+            "Higher levels offer more robustness, but reduce how much data can be stored."
         )
 
     def update_qr_stats(*_):
