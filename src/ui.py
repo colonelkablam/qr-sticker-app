@@ -129,32 +129,48 @@ def launch_gui():
     def toggle_template_fields(*_):
         # Enable/disable custom template entry + button
         use_default = use_template_var.get()
-        state = "disabled" if use_default else "normal"
-        template_path_entry.config(state=state)
-        template_browse_btn.config(state=state)
+        if use_default:
+            new_state = "disabled"
+        else:
+            new_state = "normal"
+        template_path_entry.config(state=new_state)
+        template_browse_btn.config(state=new_state)
+        template_path_label.config(state=new_state)
 
     def toggle_mode_fields(*_):
-        # Show only relevant settings based on QR type
-        use_tag = qr_type_var.get() == "Luggage Tag QR"
-        for widget in tag_frame.winfo_children():
-            try: widget.config(state="normal" if use_tag else "disabled")
-            except tk.TclError: pass
-        for widget in rect_frame.winfo_children():
-            try: widget.config(state="disabled" if use_tag else "normal")
-            except tk.TclError: pass
-        toggle_template_fields()
+        selected_mode = qr_type_var.get()
+
+        # Map each mode to the frame that should be enabled
+        mode_to_frame = {
+            "Luggage Tag QR": tag_frame,
+            "Rectangular QR": rect_frame,
+            # Add more modes and frames here as needed
+        }
+
+        # Loop through all known frames
+        for mode, frame in mode_to_frame.items():
+            enable = (mode == selected_mode)
+            for widget in frame.winfo_children():
+                try:
+                    widget.config(state="normal" if enable else "disabled")
+                except tk.TclError:
+                            pass  # Skip widgets that can't be disabled
 
     def show_error_info():
         messagebox.showinfo(
-            "QR Error Correction Levels",
-            "L (Low): ~7% error recovery\n"
+            "QR Code Details",
+            "QR Version:\n"
+            "QR codes come in versions from 1 to 40, increasing in size and capacity.\n"
+            "A higher version will be chosen automatically if your URL or data is long.\n\n"
+            "🛠 Error Correction Levels:\n"
+            "L (Low): ~7% recovery\n"
             "M (Medium): ~15% (default)\n"
             "Q (Quartile): ~25%\n"
-            "H (High): ~30%\n\n"
-            "Higher levels are more robust but store less data."
+            "H (High): ~30%\n"
+            "Higher levels offer more robustness, but reduce how much data can be stored."
         )
 
-    def update_qr_stats(*args):
+    def update_qr_stats(*_):
         # Update stats shown based on version/error level
         try:
             version = int(version_entry.get())
@@ -167,7 +183,19 @@ def launch_gui():
                 qr_size_label.config(text=f"QR: {module_count}×{module_count} squares, Max chars: ~{max_chars}")
         except:
             qr_size_label.config(text="QR: ?×? squares, Max chars: ?")
+    
+    def select_csv_file():
+        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if path:
+            csv_path.set(path)
 
+    def toggle_url_mode(*_):
+        if use_csv_var.get():
+            url_entry.config(state="disabled")
+            csv_browse_btn.config(state="normal")
+        else:
+            url_entry.config(state="normal")
+            csv_browse_btn.config(state="disabled")
     # ======= UI Layout =======
 
     root = tk.Tk()
@@ -193,23 +221,6 @@ def launch_gui():
 
     csv_browse_btn = tk.Button(url_frame, text="Browse CSV", state="disabled", command=lambda: select_csv_file())
     csv_browse_btn.grid(row=2, column=2, sticky="e")
-
-    def select_csv_file():
-        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
-        if path:
-            csv_path.set(path)
-
-    def toggle_url_mode(*_):
-        if use_csv_var.get():
-            url_entry.config(state="disabled")
-            csv_browse_btn.config(state="normal")
-        else:
-            url_entry.config(state="normal")
-            csv_browse_btn.config(state="disabled")
-
-    use_csv_var.trace_add("write", toggle_url_mode)
-    toggle_url_mode()  # run once at startup
-
 
     # --- QR encoding settings (version + error level) ---
     version_frame = tk.LabelFrame(root, text="QR Encoding Settings")
@@ -312,7 +323,8 @@ def launch_gui():
 
     custom_template_path = tk.StringVar()
     custom_file_row = tk.Frame(tag_frame)
-    tk.Label(custom_file_row, text="Custom PNG Path:").pack(side="left")
+    template_path_label = tk.Label(custom_file_row, text="Custom PNG Path:", state="disabled")
+    template_path_label.pack(side="left")
     template_path_entry = tk.Entry(custom_file_row, textvariable=custom_template_path, width=40, state="disabled")
     template_path_entry.pack(side="left", padx=5)
     template_browse_btn = tk.Button(custom_file_row, text="Browse", command=browse_for_template, state="disabled")
@@ -328,6 +340,11 @@ def launch_gui():
     # --- Reactive logic bindings ---
     use_template_var.trace_add("write", toggle_template_fields)
     qr_type_var.trace_add("write", toggle_mode_fields)
-    toggle_mode_fields()  # Initial state
+    use_csv_var.trace_add("write", toggle_url_mode)
+    
+    # --- Initial states ---
+    toggle_url_mode() 
+    toggle_mode_fields() 
+    toggle_template_fields()
 
     root.mainloop()
