@@ -36,7 +36,7 @@ Before using this app, make sure `tkinter` is installed:
 ## Running the app
 
 activate this environment (if not done):
-    source .venv\Scripts\activate   # On Windows
+    source .venv/Scripts/activate   # On git bash (windows)
     source .venv/bin/activate   # On Mac/Linux
 
 then run:
@@ -45,7 +45,15 @@ then run:
 
 ## WHAT IT DOES:
 
-Lets you enter a URL, sticker size (in mm), DPI, and QR version
+Lets you enter a URL or choose a .csv for a list of URLs
+
+Choose QR code settings
+
+Select either:
+    plain Rectangular QR
+    laggage tag QR
+
+Then select relevant settings for selection
 
 Generates a PNG with a QR code and the URL below it
 
