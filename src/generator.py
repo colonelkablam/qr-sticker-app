@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
 import qrcode
+import qrcode.image.svg
 from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
 from pathlib import Path
 
@@ -97,7 +98,7 @@ def create_luggage_tag_qr_image(url: str, version: int = 4, error_level: str = '
     background.save(filename)
 
 
-def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: int = 300, version: int = 4, error_level: str = 'M', filename="qr_output.png"):
+def create_rectangle_qr_image_2(url: str, width_mm: float, height_mm: float, dpi: int = 300, version: int = 4, error_level: str = 'M', filename="qr_output.png", output_svg=False, include_url_text=True):
     """
     Generates an rectangular image of QR code with URL text underneath of a given size at a DPI of 300
     """
@@ -108,12 +109,19 @@ def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: 
     # QR code size = ~80% of vertical space
     qr_height = int(height_px * 0.75)
 
+    if output_svg:
+        factory = qrcode.image.svg.SvgImage
+    else:
+        factory = None
+    
     qr = qrcode.QRCode(
         version=version,
         error_correction=ERROR_CORRECTION_MAP.get(error_level.upper(), ERROR_CORRECT_M),
         box_size=10,
-        border=1
+        border=1,
+        image_factory=factory
     )
+
     qr.add_data(url)
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
@@ -127,7 +135,7 @@ def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: 
     img.paste(qr_img, (qr_x, 10))
 
     # Draw text below QR
-    padding = int(width_px * 0.05)  # 5% padding left and right
+    padding = int(width_px * 0.06)  # 5% padding left and right
     max_text_width = width_px - 2 * padding
 
     text = url if len(url) <= 80 else url[:77] + "..."
@@ -151,4 +159,94 @@ def create_rectangle_qr_image(url: str, width_mm: float, height_mm: float, dpi: 
     text_y = qr_height + 20
     draw.text((text_x, text_y), text, fill="black", font=font)
 
+    if output_svg:
+        img.save(filename)
+    else:
+        img.save(filename, dpi=(dpi, dpi))
+
+def create_rectangle_qr_image(
+    url: str,
+    width_mm: float,
+    height_mm: float,
+    dpi: int = 300,
+    version: int = 4,
+    error_level: str = 'M',
+    filename="qr_output.png",
+    output_svg=False,
+    include_url_text=True
+):
+    """
+    Generates a rectangular image of a QR code with optional URL text underneath.
+    Output is a PNG (bitmap) or SVG (vector) depending on output_svg flag.
+    """
+
+    if output_svg:
+        # --- SVG MODE ---
+        factory = qrcode.image.svg.SvgImage
+        qr = qrcode.QRCode(
+            version=version,
+            error_correction=ERROR_CORRECTION_MAP.get(error_level.upper(), ERROR_CORRECT_M),
+            box_size=100,
+            border=1,
+            image_factory=factory
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image()
+        img.save(filename)
+        return  # Done!
+
+    # --- PNG MODE (Pillow drawing) ---
+    width_px = int((width_mm / 25.4) * dpi)
+    height_px = int((height_mm / 25.4) * dpi)
+    qr_height = int(height_px * 0.75)
+
+    qr = qrcode.QRCode(
+        version=version,
+        error_correction=ERROR_CORRECTION_MAP.get(error_level.upper(), ERROR_CORRECT_M),
+        box_size=10,
+        border=1
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_img = qr_img.resize((qr_height, qr_height), Image.Resampling.LANCZOS)
+
+    img = Image.new("RGB", (width_px, height_px), "white")
+    draw = ImageDraw.Draw(img)
+
+    # Optional: Draw URL text
+    if include_url_text:
+        # Center QR in x and leave space for URL in y
+        qr_x = (width_px - qr_height) // 2
+        img.paste(qr_img, (qr_x, 20))
+
+        padding = int(width_px * 0.05)
+        max_text_width = width_px - 2 * padding
+        text = url if len(url) <= 80 else url[:77] + "..."
+
+        # Try decreasing font size until it fits
+        font_size = int(dpi / 3) # start around 25pt at 300 DPI
+        while font_size > 6:
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
+                break
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            if text_width <= max_text_width:
+                break
+            font_size -= 1
+
+        text_x = (width_px - text_width) // 2
+        text_y = qr_height + 20
+        draw.text((text_x, text_y), text, fill="black", font=font)
+    else:
+        # Center QR in x and y
+        qr_x = (width_px - qr_height) // 2
+        qr_y = (height_px - qr_height) // 2
+        img.paste(qr_img, (qr_x, qr_y))
+
+    # Save final PNG
     img.save(filename, dpi=(dpi, dpi))

@@ -31,7 +31,10 @@ def launch_gui():
                 for i, suffix in enumerate(suffixes, start=1):
                     full_url = base_url + suffix
                     slug = extract_slug(full_url)
-                    filename = f"{saved_dir}/{i:03d}_{slug}.png"
+                    file_extension = ".png" # default
+                    if svg_output.get():
+                        file_extension = ".svg"
+                    filename = f"{saved_dir}/{i:03d}_{slug}{file_extension}"
 
                     # Shared QR settings
                     version = int(version_entry.get() or 4)
@@ -48,7 +51,7 @@ def launch_gui():
                         width_mm = float(rect_width_entry.get())
                         height_mm = float(rect_height_entry.get())
                         dpi = int(rect_dpi_entry.get())
-                        create_rectangle_qr_image(full_url, width_mm, height_mm, dpi, version, error_level, filename=filename)
+                        create_rectangle_qr_image(full_url, width_mm, height_mm, dpi, version, error_level, filename, svg_output.get(), include_url_output.get())
 
                 messagebox.showinfo("Batch Complete", f"QR codes saved to:\n{saved_dir}")
                 return
@@ -70,11 +73,15 @@ def launch_gui():
 
             error_level = error_level_var.get()  # "L", "M", "Q", or "H"
 
+            file_extension = ".png" # default
+            if svg_output.get():
+                file_extension = ".svg"
+
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".png",
                 filetypes=[("PNG files", "*.png")],
                 title="Save QR code as...",
-                initialfile=f"{slug}.png",
+                initialfile=f"{slug}{file_extension}",
                 initialdir=get_default_save_dir()
             )
             if not file_path:
@@ -113,7 +120,8 @@ def launch_gui():
                     return
                 create_rectangle_qr_image(
                     url, width_mm, height_mm, dpi,
-                    version, error_level, filename=file_path
+                    version, error_level, file_path,
+                    svg_output.get(), include_url_output.get()
                 )
 
             messagebox.showinfo("Success", f"QR code saved to:\n{file_path}")
@@ -140,21 +148,50 @@ def launch_gui():
     def toggle_mode_fields(*_):
         selected_mode = qr_type_var.get()
 
-        # Map each mode to the frame that should be enabled
+        # Enable/disable mode-specific frames
+        _toggle_mode_frames(selected_mode)
+
+        # Ensure URL checkbox is off in SVG mode
+        _force_disable_url_checkbox_if_svg()
+
+        # Enable/disable template entry fields
+        _update_template_field_states(selected_mode)
+
+    def _toggle_mode_frames(selected_mode):
         mode_to_frame = {
             "Luggage Tag QR": tag_frame,
             "Rectangular QR": rect_frame,
-            # Add more modes and frames here as needed
         }
-
-        # Loop through all known frames
         for mode, frame in mode_to_frame.items():
             enable = (mode == selected_mode)
             for widget in frame.winfo_children():
                 try:
                     widget.config(state="normal" if enable else "disabled")
                 except tk.TclError:
-                            pass  # Skip widgets that can't be disabled
+                    pass
+
+    def _force_disable_url_checkbox_if_svg():
+        if svg_output.get():
+            try:
+                include_url_output_checkbox.config(state="disabled")
+            except tk.TclError:
+                pass
+
+    def _update_template_field_states(selected_mode):
+        try:
+            if use_template_var.get():
+                # Default template: always disable
+                template_path_label.config(state="disabled")
+                template_path_entry.config(state="disabled")
+                template_browse_btn.config(state="disabled")
+            else:
+                # Only enable if in Luggage Tag mode
+                state = "normal" if selected_mode == "Luggage Tag QR" else "disabled"
+                template_path_label.config(state=state)
+                template_path_entry.config(state=state)
+                template_browse_btn.config(state=state)
+        except tk.TclError:
+            pass
 
     def show_error_info():
         messagebox.showinfo(
@@ -196,6 +233,15 @@ def launch_gui():
         else:
             url_entry.config(state="normal")
             csv_browse_btn.config(state="disabled")
+
+    def toggle_svg_mode(*_):
+        if svg_output.get():
+            include_url_output_checkbox.config(state="disabled")
+            include_url_output.set(False)
+        else:
+            include_url_output_checkbox.config(state="normal")
+
+
     # ======= UI Layout =======
 
     root = tk.Tk()
@@ -291,6 +337,15 @@ def launch_gui():
     rect_dpi_entry.insert(0, "300")
     rect_dpi_entry.grid(row=1, column=1)
 
+    # Third row: file format and include text
+    svg_output = tk.BooleanVar(value=False)
+    svg_output_checkbox = tk.Checkbutton(rect_frame, text=".svg output (default is .png)", variable=svg_output)
+    svg_output_checkbox.grid(row=2, column=1, columnspan=3, sticky="w")
+
+    include_url_output = tk.BooleanVar(value=False)
+    include_url_output_checkbox = tk.Checkbutton(rect_frame, text="Include URL in output (not with .svg)", variable=include_url_output)
+    include_url_output_checkbox.grid(row=3, column=1, columnspan=3, sticky="w")
+
 
     # --- Luggage tag QR settings ---
     tag_frame = tk.LabelFrame(root, text="Luggage Tag Settings")
@@ -341,10 +396,13 @@ def launch_gui():
     use_template_var.trace_add("write", toggle_template_fields)
     qr_type_var.trace_add("write", toggle_mode_fields)
     use_csv_var.trace_add("write", toggle_url_mode)
+    svg_output.trace_add("write", toggle_svg_mode)
+
     
     # --- Initial states ---
     toggle_url_mode() 
     toggle_mode_fields() 
     toggle_template_fields()
+    toggle_svg_mode()
 
     root.mainloop()

@@ -46,12 +46,23 @@ then run:
 ## WHAT IT DOES:
 
 Lets you enter a URL or choose a .csv for a list of URLs
+The .csv file needs to have a 1st value representing the main registration link: 
+'https://my.sensibee.io/register?deviceId='
+
+then following values:
+
+'faithful-hoverfly-66,
+gigantic-moth-10
+brave-damselfly-22, 
+etc...'
+
+will be added to the end of main link to create a batch of links: e.g. 'https://my.sensibee.io/register?deviceId=faithful-hoverfly-66'
 
 Choose QR code settings
 
 Select either:
-    plain Rectangular QR
-    laggage tag QR
+    plain Rectangular QR - can choose .svg or .png with URL
+    laggage tag QR - .png with URL on template
 
 Then select relevant settings for selection
 
